@@ -67,7 +67,7 @@ class WorkflowOrchestrator:
             # Bước 4: Trả về kết quả
             return {
                 "result": final_result,
-                "expression_type": ExpressionType.HYBRID.value,
+                "expression_type": ExpressionType.SIMPLE.value,
                 "original_expression": expression,
             }
         except Exception as e:
