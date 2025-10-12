@@ -42,7 +42,6 @@ class WorkflowBuilder:
         if not is_left_task and not is_right_task:
             op_task = self.task_map[node.operation]
             return op_task.s(left_op, right_op)
-        
         elif is_left_task and not is_right_task:
             return chain(
                 left_op, 
@@ -61,6 +60,6 @@ class WorkflowBuilder:
                     is_left_fixed=True
                 )
             )
-
         else:
-            raise NotImplementedError("This simple builder only handles single operations or numbers.")
+            parallel_tasks = group(left_op, right_op)
+            return chain(parallel_tasks, combine_and_operate.s(operation_name=op_name))
