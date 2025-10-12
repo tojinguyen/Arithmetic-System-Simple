@@ -108,7 +108,7 @@ class ExpressionParser:
     def _clean_expression(self, expression: str) -> str:
         clean = re.sub(r'\s+', '', expression)
 
-        if not re.match(r'^[0-9+\-*/().]+$', clean):
+        if not re.match(r'^[0-9+*/().%-]+$', clean):
             raise ValueError("Expression contains invalid characters")
         return clean
 
