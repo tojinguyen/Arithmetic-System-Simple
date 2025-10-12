@@ -92,6 +92,15 @@ class ExpressionParser:
         elif isinstance(node, ast.Constant):
             value = float(node.value)
             return value
+        elif isinstance(node, ast.UnaryOp):
+            if isinstance(node.op, ast.USub):
+                operand = self._build_expression_tree(node.operand, level)
+                if isinstance(operand, (int, float)):
+                    return -operand
+                else:
+                    raise ValueError("Unary subtraction on complex expression is not supported")
+            else:
+                raise ValueError(f"Unsupported unary operator: {type(node.op)}")
         else:
             logger.error(f"Unsupported node type: {type(node)}")
             raise ValueError(f"Unsupported node type: {type(node)}")
