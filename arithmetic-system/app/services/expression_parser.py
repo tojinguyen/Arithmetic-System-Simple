@@ -21,17 +21,9 @@ class OperationEnum(str, Enum):
     MUL = "mul"
     DIV = "div"
 
-    @classmethod
-    def commutative_operations(cls):
-        return {cls.ADD, cls.MUL}
-
-    @classmethod
-    def non_commutative_operations(cls):
-        return {cls.SUB, cls.DIV}
-
     @property
     def is_commutative(self):
-        return self in self.commutative_operations()
+        return self in {OperationEnum.ADD, OperationEnum.MUL}
 
 @dataclass
 class ExpressionNode:
@@ -50,10 +42,10 @@ class ParsedExpression:
 
 class ExpressionParser:
     OPERATORS = {
-        '+': Operations.ADD,
-        '-': Operations.SUB,
-        '*': Operations.MUL,
-        '/': Operations.DIV
+        '+': OperationEnum.ADD,
+        '-': OperationEnum.SUB,
+        '*': OperationEnum.MUL,
+        '/': OperationEnum.DIV
     }
 
     def __init__(self):
@@ -91,31 +83,12 @@ class ExpressionParser:
 
     def parse(self, expression: str) -> ParsedExpression:
         logger.info("=" * 80)
-        logger.info("STARTING EXPRESSION PARSING")
-        logger.info("=" * 80)
         logger.info(f"Input expression: {expression}")
 
         try:
-            # Clean the expression
-            logger.info("-" * 40)
-            logger.info("STEP 1: Cleaning expression")
             clean_expr = self._clean_expression(expression)
-            logger.info(f"Cleaned expression: {clean_expr}")
-
-            # Parse as AST
-            logger.info("\n\n")
-            logger.info("-" * 40)
-            logger.info("STEP 2: Parsing AST")
             tree = ast.parse(clean_expr, mode='eval')
-            logger.info(f"AST created successfully for: {clean_expr}")
-            logger.info(f"This AST tree structure: {ast.dump(tree)}")
-
-            # Build expression tree
-            logger.info("\n\n")
-            logger.info("-" * 40)
-            logger.info("STEP 3: Building expression tree")
             expr_tree = self._build_expression_tree(tree.body, level=0)
-            logger.info("Expression tree built successfully")
             self._log_tree_structure(expr_tree, "ROOT")
 
             result = ParsedExpression(
@@ -124,17 +97,8 @@ class ExpressionParser:
                 original_expression=expression
             )
 
-            logger.info("=" * 80)
-            logger.info("PARSING COMPLETED SUCCESSFULLY")
-            logger.info("=" * 80)
-
             return result
-
         except Exception as e:
-            logger.error("=" * 80)
-            logger.error("PARSING FAILED")
-            logger.error("=" * 80)
-            logger.error(f"Error: {str(e)}")
             raise ValueError(f"Invalid expression: {expression}. Error: {str(e)}")
 
     def _build_expression_tree(self, node, level: int = 0) -> Union[ExpressionNode, float]:
@@ -142,7 +106,6 @@ class ExpressionParser:
             op_symbol = self._get_operator_symbol(node.op)
 
             if op_symbol not in self.OPERATORS:
-                logger.error(f"Unsupported operator: {op_symbol}")
                 raise ValueError(f"Unsupported operator: {op_symbol}")
 
             left = self._build_expression_tree(node.left, level + 1)
@@ -165,19 +128,10 @@ class ExpressionParser:
             raise ValueError(f"Unsupported node type: {type(node)}")
 
     def _clean_expression(self, expression: str) -> str:
-        logger.info("CLEAN_EXPRESSION FUNCTION")
-        logger.info(f"Original expression: '{expression}'")
-
-        # Remove whitespace
         clean = re.sub(r'\s+', '', expression)
-        logger.info(f"After removing whitespace: '{clean}'")
 
-        # Validate characters (numbers, operators, parentheses, decimal points)
         if not re.match(r'^[0-9+\-*/().]+$', clean):
-            logger.error(f"Expression contains invalid characters: '{clean}'")
             raise ValueError("Expression contains invalid characters")
-
-        logger.info(f"Expression validation passed: '{clean}'")
         return clean
 
     def _get_operator_symbol(self, op) -> str:
