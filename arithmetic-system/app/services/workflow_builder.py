@@ -34,7 +34,7 @@ class WorkflowBuilder:
             raise TypeError(f"Invalid node type: {type(node)}")
         
         if node.operation.is_commutative:
-            return self._build_optimized_workflow(node)
+            return self._build_flat_workflow(node)
         else:
             left_op = self._build_recursive(node.left)
             right_op = self._build_recursive(node.right)
@@ -78,7 +78,7 @@ class WorkflowBuilder:
             operands.append(node)
         return operands
     
-    def _build_optimized_workflow(self, node: ExpressionNode) -> Signature | float:
+    def _build_flat_workflow(self, node: ExpressionNode) -> Signature | float:
         all_operands = self._collect_operands(node, node.operation)
         child_workflows = [self._build_recursive(op) for op in all_operands]
         
