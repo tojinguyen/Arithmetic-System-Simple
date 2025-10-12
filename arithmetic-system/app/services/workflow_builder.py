@@ -79,14 +79,11 @@ class WorkflowBuilder:
         return operands
     
     def _build_optimized_workflow(self, node: ExpressionNode) -> Signature | float:
-        logger.info(f"\n--- Optimizing Commutative Node: [{node.operation.value.upper()}] ---")
-        
         all_operands = self._collect_operands(node, node.operation)
         child_workflows = [self._build_recursive(op) for op in all_operands]
         
         tasks = [wf for wf in child_workflows if isinstance(wf, Signature)]
         constants = [wf for wf in child_workflows if not isinstance(wf, Signature)]
-        logger.info(f"  - Collected: {len(tasks)} sub-tasks, {len(constants)} constants ({constants})")
 
         if constants:
             if node.operation == OperationEnum.ADD:
@@ -95,7 +92,6 @@ class WorkflowBuilder:
                 else:
                     constants_task = xsum.s(constants)
                     tasks.append(constants_task)
-                    logger.info(f"  - Created constants task: {constants_task}")
 
             elif node.operation == OperationEnum.MUL:
                 if len(constants) == 1:
@@ -103,7 +99,6 @@ class WorkflowBuilder:
                 else:
                     constants_task = xprod.s(constants)
                     tasks.append(constants_task)
-                    logger.info(f"  - Created constants task: {constants_task}")
         
         if not tasks:
             if len(constants) == 1:
