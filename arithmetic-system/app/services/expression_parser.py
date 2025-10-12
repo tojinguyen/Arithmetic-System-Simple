@@ -10,53 +10,32 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(level
 
 
 class ExpressionType(Enum):
+    SIMPLE = "simple"
     SEQUENTIAL = "sequential"
     PARALLEL = "parallel"
     HYBRID = "hybrid"
-    SIMPLE = "simple"
 
-class Operations:
+class OperationEnum(str, Enum):
     ADD = "add"
     SUB = "sub"
     MUL = "mul"
     DIV = "div"
 
-    # List of all operations for easy iteration
-    ALL = [ADD, SUB, MUL, DIV]
+    @classmethod
+    def commutative_operations(cls):
+        return {cls.ADD, cls.MUL}
 
-    # Commutative operations (order doesn't matter)
-    COMMUTATIVE = [ADD, MUL]
+    @classmethod
+    def non_commutative_operations(cls):
+        return {cls.SUB, cls.DIV}
 
-    # Non-commutative operations (order matters)
-    NON_COMMUTATIVE = [SUB, DIV]
-
-# Operation constants to avoid magic strings
-class Operations:
-    ADD = "add"
-    SUB = "sub"
-    MUL = "mul"
-    DIV = "div"
-
-    # List of all operations for easy iteration
-    ALL = [ADD, SUB, MUL, DIV]
-
-    # Commutative operations (order doesn't matter)
-    COMMUTATIVE = [ADD, MUL]
-
-    # Non-commutative operations (order matters)
-    NON_COMMUTATIVE = [SUB, DIV]
-
-
-@dataclass
-class Operation:
-    operation: str
-    operand1: Union[float, str, 'ExpressionNode']
-    operand2: Union[float, str, 'ExpressionNode']
-
+    @property
+    def is_commutative(self):
+        return self in self.commutative_operations()
 
 @dataclass
 class ExpressionNode:
-    operation: str
+    operation: OperationEnum
     left: Union[float, 'ExpressionNode']
     right: Union[float, 'ExpressionNode']
     level: int = 0
@@ -65,7 +44,7 @@ class ExpressionNode:
 @dataclass
 class ParsedExpression:
     expression_type: ExpressionType
-    expression_tree: Optional[ExpressionNode]
+    expression_tree: Union[ExpressionNode, float, None]
     original_expression: str
 
 
