@@ -8,7 +8,6 @@ from enum import Enum
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
-
 class ExpressionType(Enum):
     SIMPLE = "simple"
     SEQUENTIAL = "sequential"
@@ -35,7 +34,6 @@ class ExpressionNode:
 
 @dataclass
 class ParsedExpression:
-    expression_type: ExpressionType
     expression_tree: Union[ExpressionNode, float, None]
     original_expression: str
 
@@ -53,34 +51,6 @@ class ExpressionParser:
         self.parallel_groups = []
         self.sequential_chains = []
 
-    def _log_tree_structure(self, tree: Union[ExpressionNode, float], prefix: str = "", is_last: bool = True,
-                            depth: int = 0):
-        if depth == 0:
-            logger.info("EXPRESSION TREE STRUCTURE:")
-            logger.info("=" * 50)
-
-        if isinstance(tree, ExpressionNode):
-            connector = "└── " if is_last else "├── "
-            logger.info(f"{prefix}{connector}[{tree.operation.upper()}] (Level: {tree.level})")
-
-            child_prefix = prefix + ("    " if is_last else "│   ")
-
-            if isinstance(tree.left, ExpressionNode):
-                self._log_tree_structure(tree.left, child_prefix, False, depth + 1)
-            else:
-                logger.info(f"{child_prefix}├── {tree.left} (leaf)")
-
-            if isinstance(tree.right, ExpressionNode):
-                self._log_tree_structure(tree.right, child_prefix, True, depth + 1)
-            else:
-                logger.info(f"{child_prefix}└── {tree.right} (leaf)")
-        else:
-            connector = "└── " if is_last else "├── "
-            logger.info(f"{prefix}{connector}{tree} (leaf)")
-
-        if depth == 0:
-            logger.info("=" * 50)
-
     def parse(self, expression: str) -> ParsedExpression:
         logger.info("=" * 80)
         logger.info(f"Input expression: {expression}")
@@ -89,10 +59,9 @@ class ExpressionParser:
             clean_expr = self._clean_expression(expression)
             tree = ast.parse(clean_expr, mode='eval')
             expr_tree = self._build_expression_tree(tree.body, level=0)
-            self._log_tree_structure(expr_tree, "ROOT")
+            self._log_tree_structure(expr_tree)
 
             result = ParsedExpression(
-                expression_type=ExpressionType.SEQUENTIAL,
                 expression_tree=expr_tree,
                 original_expression=expression
             )
@@ -143,3 +112,31 @@ class ExpressionParser:
         }
         symbol = op_map.get(type(op), '?')
         return symbol
+    
+    def _log_tree_structure(self, tree: Union[ExpressionNode, float], prefix: str = "", is_last: bool = True,
+                            depth: int = 0):
+        if depth == 0:
+            logger.info("EXPRESSION TREE STRUCTURE:")
+            logger.info("=" * 50)
+
+        if isinstance(tree, ExpressionNode):
+            connector = "└── " if is_last else "├── "
+            logger.info(f"{prefix}{connector}[{tree.operation.upper()}] (Level: {tree.level})")
+
+            child_prefix = prefix + ("    " if is_last else "│   ")
+
+            if isinstance(tree.left, ExpressionNode):
+                self._log_tree_structure(tree.left, child_prefix, False, depth + 1)
+            else:
+                logger.info(f"{child_prefix}├── {tree.left} (leaf)")
+
+            if isinstance(tree.right, ExpressionNode):
+                self._log_tree_structure(tree.right, child_prefix, True, depth + 1)
+            else:
+                logger.info(f"{child_prefix}└── {tree.right} (leaf)")
+        else:
+            connector = "└── " if is_last else "├── "
+            logger.info(f"{prefix}{connector}{tree} (leaf)")
+
+        if depth == 0:
+            logger.info("=" * 50)
