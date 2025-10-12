@@ -1,4 +1,4 @@
-from celery import chain, group, Signature
+from celery import chain, group, Signature, chord
 from celery.result import EagerResult 
 import uuid
 from .combiner_service import combine_and_operate
@@ -33,7 +33,13 @@ class WorkflowBuilder:
         if not isinstance(node, ExpressionNode):
             raise TypeError(f"Invalid node type: {type(node)}")
         
-        if node.operation.is_commutative:
+        is_left_constant = isinstance(node.left, (int, float))
+        is_right_constant = isinstance(node.right, (int, float))
+        if is_left_constant and is_right_constant:
+            op_task = self.task_map[node.operation]
+            return op_task.s(node.left, node.right)
+        
+        if node.operation.is_commutative and not is_left_constant and not is_right_constant:
             return self._build_flat_workflow(node)
         else:
             left_op = self._build_recursive(node.left)
@@ -48,23 +54,19 @@ class WorkflowBuilder:
                 op_task = self.task_map[node.operation]
                 return op_task.s(left_op, right_op)
             elif is_left_task and not is_right_task:
-                return chain(
-                    left_op, 
-                    combine_and_operate.s(
-                        operation_name=op_name, 
-                        fixed_operand=right_op, 
-                        is_left_fixed=False 
-                    )
+                combiner_sig = combine_and_operate.s(
+                    operation_name=op_name, 
+                    fixed_operand=right_op, 
+                    is_left_fixed=False 
                 )
+                return left_op | combiner_sig
             elif not is_left_task and is_right_task:
-                return chain(
-                    right_op, 
-                    combine_and_operate.s(
-                        operation_name=op_name, 
-                        fixed_operand=left_op, 
-                        is_left_fixed=True
-                    )
+                combiner_sig = combine_and_operate.s(
+                    operation_name=op_name, 
+                    fixed_operand=left_op, 
+                    is_left_fixed=True
                 )
+                return right_op | combiner_sig
             else:
                 parallel_tasks = group(left_op, right_op)
                 return chain(parallel_tasks, combine_and_operate.s(operation_name=op_name))
@@ -87,18 +89,15 @@ class WorkflowBuilder:
 
         if constants:
             if node.operation == OperationEnum.ADD:
-                if len(constants) == 1:
-                     pass 
-                else:
+                if len(constants) > 1:
                     constants_task = xsum.s(constants)
                     tasks.append(constants_task)
 
             elif node.operation == OperationEnum.MUL:
-                if len(constants) == 1:
-                    pass
-                else:
+                if len(constants) > 1:
                     constants_task = xprod.s(constants)
                     tasks.append(constants_task)
+                    
         
         if not tasks:
             if len(constants) == 1:
@@ -119,7 +118,7 @@ class WorkflowBuilder:
 
         aggregator_task = xsum.s() if node.operation == OperationEnum.ADD else xprod.s()
         
-        final_workflow = chain(parallel_group, aggregator_task)
+        final_workflow = chord(header=group(tasks), body=aggregator_task)
 
         if len(constants) == 1 and len(child_workflows) > len(tasks):
              final_workflow |= combine_and_operate.s(
