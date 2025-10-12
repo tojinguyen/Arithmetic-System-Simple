@@ -12,7 +12,7 @@ OPERATION_MAP = {
     OperationEnum.DIV.value: divide,
 }
 
-@app.task(name='combine_and_operate', queue='mul_tasks')
+@app.task(name='combine_and_operate', queue='combine_tasks')
 def combine_and_operate(results, operation_name, fixed_operand=None, is_left_fixed=False):
     op_func = OPERATION_MAP[operation_name]
 
