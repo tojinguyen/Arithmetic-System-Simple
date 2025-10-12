@@ -38,3 +38,5 @@ class WorkflowBuilder:
         if isinstance(left_operand, float) and isinstance(right_operand, float):
             task_function = self.task_map[node.operation]
             return task_function.s(left_operand, right_operand)
+        
+        raise NotImplementedError("This simple builder only handles single operations or numbers.")
