@@ -8,6 +8,7 @@ from ..workers.sub_service import subtract as sub_task
 
 from .expression_parser import ExpressionParser, OperationEnum
 from .workflow_builder import WorkflowBuilder
+from ..models.models import CalculateExpressionResponse
 
 logger = logging.getLogger(__name__)
 
@@ -22,17 +23,17 @@ class WorkflowOrchestrator:
         self.parser = ExpressionParser()
         self.builder = WorkflowBuilder(self.task_map)
 
-    def calculate(self, expression: str) -> Dict[str, Any]:
+    def calculate(self, expression: str) -> CalculateExpressionResponse:
         try:
             parsed = self.parser.parse(expression)
             workflow_result = self.builder.build(parsed.expression_tree)
             final_result = workflow_result.get(timeout=30)
             logger.info(f"Final Result: {final_result}")
 
-            return {
-                "result": final_result,
-                "original_expression": expression,
-            }
+            return CalculateExpressionResponse(
+                result=final_result,
+                original_expression=parsed.original_expression
+            )
         except Exception as e:
             logger.error(f"Error while calculating '{expression}': {str(e)}", exc_info=True)
             raise ValueError(f"Cannot calculate expression: {expression}. Error: {str(e)}")

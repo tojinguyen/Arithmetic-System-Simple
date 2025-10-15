@@ -1,12 +1,11 @@
 import re
 import ast
 import logging
-from typing import Union, Optional
+from typing import Union
 from dataclasses import dataclass
 from enum import Enum
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 class OperationEnum(str, Enum):
     ADD = "add"
@@ -22,13 +21,15 @@ class OperationEnum(str, Enum):
 @dataclass
 class ExpressionNode:
     operation: OperationEnum
-    left: Union[float, 'ExpressionNode']
-    right: Union[float, 'ExpressionNode']
+    left: "ExpressionNode" | float
+    right: "ExpressionNode" | float
 
 @dataclass
 class ParsedExpression:
-    expression_tree: Union[ExpressionNode, float, None]
-    original_expression: str
+    expression_tree: "ExpressionNode" | float | None
+    
+REGEX_VALID_CHARACTERS = re.compile(r'^[0-9+\-*/().%\s]+$')
+pattern = re.compile(r'\s+')
 
 
 class ExpressionParser:
@@ -45,9 +46,6 @@ class ExpressionParser:
         self.sequential_chains = []
 
     def parse(self, expression: str) -> ParsedExpression:
-        logger.info("=" * 80)
-        logger.info(f"Input expression: {expression}")
-
         try:
             clean_expr = self._clean_expression(expression)
             tree = ast.parse(clean_expr, mode='eval')
@@ -63,7 +61,7 @@ class ExpressionParser:
         except Exception as e:
             raise ValueError(f"Invalid expression: {expression}. Error: {str(e)}")
 
-    def _build_expression_tree(self, node, level: int = 0) -> Union[ExpressionNode, float]:
+    def _build_expression_tree(self, node, level: int = 0) -> ExpressionNode | float:
         if isinstance(node, ast.BinOp):
             op_symbol = self._get_operator_symbol(node.op)
 
@@ -100,7 +98,7 @@ class ExpressionParser:
     def _clean_expression(self, expression: str) -> str:
         clean = re.sub(r'\s+', '', expression)
 
-        if not re.match(r'^[0-9+*/().%-]+$', clean):
+        if not pattern.match(clean):
             raise ValueError("Expression contains invalid characters")
         return clean
 
@@ -115,7 +113,7 @@ class ExpressionParser:
         return symbol
 
     def _log_tree_structure(self, tree: Union[ExpressionNode, float], prefix: str = "", is_last: bool = True,
-                            depth: int = 0):
+                            depth: int = 0) -> None:
         if depth == 0:
             logger.info("EXPRESSION TREE STRUCTURE:")
             logger.info("=" * 50)
