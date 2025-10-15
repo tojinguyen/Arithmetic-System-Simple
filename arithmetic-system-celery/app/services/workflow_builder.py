@@ -13,22 +13,6 @@ class WorkflowBuilder:
     def __init__(self, task_map):
         self.task_map = task_map
 
-    def represent_workflow(self, workflow):
-        try:
-            if isinstance(workflow, (int, float)):
-                return f"Immediate value: {workflow}"
-            if isinstance(workflow, Signature):
-                return workflow.name or str(workflow)
-            if hasattr(workflow, "tasks"):
-                # chain or group
-                return f"{workflow.__class__.__name__}({[self.represent_workflow(t) for t in workflow.tasks]})"
-            if hasattr(workflow, "header") and hasattr(workflow, "body"):
-                # chord
-                return f"chord(header={self.represent_workflow(workflow.header)}, body={self.represent_workflow(workflow.body)})"
-            return str(workflow)
-        except Exception:
-            return f"<Unrepresentable workflow: {type(workflow).__name__}>"
-
     def build(self, node) -> tuple[AsyncResult, str]:
         workflow_or_result = self._build_recursive(node)
         workflow_string = ""
@@ -43,18 +27,18 @@ class WorkflowBuilder:
                 f"Build process returned an unexpected type: {type(workflow_or_result)}"
             )
 
-        workflow_string = self.represent_workflow(workflow_or_result)
         return async_result, workflow_string
 
-    def _build_recursive(self, node) -> Signature | float:
+    def _build_recursive(self, node) -> Signature | float | int:
         if isinstance(node, (int, float)):
-            return float(node)
+            return node
 
         if not isinstance(node, ExpressionNode):
             raise TypeError(f"Invalid node type: {type(node)}")
 
         is_left_constant = isinstance(node.left, (int, float))
         is_right_constant = isinstance(node.right, (int, float))
+
         if is_left_constant and is_right_constant:
             op_task = self.task_map[node.operation]
             return op_task.s(node.left, node.right)
