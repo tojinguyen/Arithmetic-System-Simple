@@ -1,5 +1,5 @@
 from celery import chain, group, Signature, chord
-from celery.result import EagerResult
+from celery.result import EagerResult, AsyncResult
 import uuid
 from .expression_parser import ExpressionNode, OperationEnum
 import logging
@@ -13,8 +13,25 @@ class WorkflowBuilder:
     def __init__(self, task_map):
         self.task_map = task_map
 
-    def build(self, node):
+    def represent_workflow(self, workflow):
+        try:
+            if isinstance(workflow, (int, float)):
+                return f"Immediate value: {workflow}"
+            if isinstance(workflow, Signature):
+                return workflow.name or str(workflow)
+            if hasattr(workflow, "tasks"):
+                # chain or group
+                return f"{workflow.__class__.__name__}({[self.represent_workflow(t) for t in workflow.tasks]})"
+            if hasattr(workflow, "header") and hasattr(workflow, "body"):
+                # chord
+                return f"chord(header={self.represent_workflow(workflow.header)}, body={self.represent_workflow(workflow.body)})"
+            return str(workflow)
+        except Exception:
+            return f"<Unrepresentable workflow: {type(workflow).__name__}>"
+
+    def build(self, node) -> tuple[AsyncResult, str]:
         workflow_or_result = self._build_recursive(node)
+        workflow_string = ""
 
         if isinstance(workflow_or_result, (int, float)):
             task_id = str(uuid.uuid4())
@@ -26,7 +43,8 @@ class WorkflowBuilder:
                 f"Build process returned an unexpected type: {type(workflow_or_result)}"
             )
 
-        return async_result
+        workflow_string = self.represent_workflow(workflow_or_result)
+        return async_result, workflow_string
 
     def _build_recursive(self, node) -> Signature | float:
         if isinstance(node, (int, float)):
@@ -107,9 +125,6 @@ class WorkflowBuilder:
                 return chain(tasks[0], op_task.s(y=constants[0], is_left_fixed=False))
             return tasks[0]
 
-        parallel_group = group(tasks)
-        logger.info(f"  - Created final parallel group: {parallel_group}")
-
         aggregator_task = xsum.s() if node.operation == OperationEnum.ADD else xprod.s()
 
         final_workflow = chord(header=group(tasks), body=aggregator_task)
@@ -117,5 +132,4 @@ class WorkflowBuilder:
         if len(constants) == 1 and len(child_workflows) > len(tasks):
             return chain(tasks[0], op_task.s(y=constants[0], is_left_fixed=False))
 
-        logger.info(f"  - Created final chain for group: {final_workflow}")
         return final_workflow
