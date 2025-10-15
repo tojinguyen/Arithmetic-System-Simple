@@ -50,6 +50,9 @@ class ExpressionParser:
         self.sequential_chains = []
 
     def parse(self, expression: str) -> ParsedExpression:
+        if not expression or not expression.strip():
+            raise ValueError("Expression cannot be empty")
+
         clean_expr = self._clean_expression(expression)
         try:
             tree = ast.parse(clean_expr, mode="eval")
