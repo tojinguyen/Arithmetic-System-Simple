@@ -43,10 +43,6 @@ class WorkflowBuilder:
         if not isinstance(node, ExpressionNode):
             raise TypeError(f"Invalid node type: {type(node)}")
 
-        logger.info(
-            f"Building workflow for node: {node.operation} with left={node.left} and right={node.right}"
-        )
-
         is_left_constant = isinstance(node.left, (int, float))
         is_right_constant = isinstance(node.right, (int, float))
 
