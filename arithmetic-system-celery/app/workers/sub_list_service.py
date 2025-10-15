@@ -4,8 +4,8 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-@app.task(name="sub", queue="sub_tasks")
-def sub(x: list[int | float]):
+@app.task(name="subtract_list_task", queue="sub_tasks")
+def subtract_list_task(x: list[int | float]):
     if not isinstance(x, list):
         raise TypeError(f"Sub task expects a list, got {type(x).__name__}")
 

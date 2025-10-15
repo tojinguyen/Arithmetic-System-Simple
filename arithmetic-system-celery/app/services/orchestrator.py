@@ -1,25 +1,36 @@
 import logging
 
-from ..workers.add_service import add as add_task
-from ..workers.mul_service import multiply as mul_task
-from ..workers.div_service import divide as div_task
-from ..workers.sub_service import subtract as sub_task
+from app.workers import (
+    add_task,
+    subtract_task,
+    multiply_task,
+    divide_task,
+    subtract_list_task,
+    divide_list_task,
+)
 
 from .expression_parser import ExpressionParser, OperationEnum
 from .workflow_builder import WorkflowBuilder
-from ..models.models import CalculateExpressionResponse
+from app.models.models import CalculateExpressionResponse
+from typing import Callable
 
 logger = logging.getLogger(__name__)
 
 
 class WorkflowOrchestrator:
     def __init__(self):
-        self.task_map = {
+        self.task_map: dict[OperationEnum, Callable[..., int | float]] = {
             OperationEnum.ADD: add_task,
-            OperationEnum.SUB: sub_task,
-            OperationEnum.MUL: mul_task,
-            OperationEnum.DIV: div_task,
+            OperationEnum.SUB: subtract_task,
+            OperationEnum.MUL: multiply_task,
+            OperationEnum.DIV: divide_task,
         }
+
+        self.task_map_chord: dict[OperationEnum, Callable[..., int | float]] = {
+            OperationEnum.SUB: subtract_list_task,
+            OperationEnum.DIV: divide_list_task,
+        }
+
         self.parser = ExpressionParser()
         self.builder = WorkflowBuilder(self.task_map)
 

@@ -5,8 +5,8 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-@app.task(name="divide", queue="div_tasks")
-def divide(x: int | float, y: int | float, is_left_fixed: bool = False) -> float:
+@app.task(name="divide_task", queue="div_tasks")
+def divide_task(x: int | float, y: int | float, is_left_fixed: bool = False) -> float:
     if not isinstance(x, (int, float)):
         raise TypeError(f"x must be int or float, got {type(x).__name__}")
 

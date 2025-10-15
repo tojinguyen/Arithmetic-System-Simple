@@ -26,7 +26,7 @@ def evaluate(
         return result
     except ExpressionSyntaxError as e:
         logger.error(f"Syntax error in expression '{expression}': {str(e)}")
-        raise ErrorResponse(code=HTTPStatus.BAD_REQUEST, detail=str(e))
+        raise ErrorResponse(code=HTTPStatus.BAD_REQUEST, message=str(e))
     except (
         UnsupportedOperatorError,
         UnsupportedNodeError,
@@ -34,4 +34,4 @@ def evaluate(
         ComplexUnaryExpressionError,
     ) as e:
         logger.error(f"Unsupported operation in expression '{expression}': {str(e)}")
-        raise ErrorResponse(code=HTTPStatus.BAD_REQUEST, detail=str(e))
+        raise ErrorResponse(code=HTTPStatus.BAD_REQUEST, message=str(e))

@@ -4,8 +4,8 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-@app.task(name="add", queue="add_tasks")
-def add(x: int | float, y: int | float, is_left_fixed: bool = False) -> float:
+@app.task(name="add_task", queue="add_tasks")
+def add_task(x: int | float, y: int | float, is_left_fixed: bool = False) -> float:
     try:
         return x + y
     except Exception as exc:

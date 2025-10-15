@@ -1,17 +1,22 @@
-from celery import chain, group, Signature, chord
+from celery import group, Signature, chord
 from celery.result import EagerResult, AsyncResult
 import uuid
 from .expression_parser import ExpressionNode, OperationEnum
 import logging
-from ..workers.xsum_service import xsum
-from ..workers.xprod_service import xprod
+from app.workers import xsum_task, xprod_task
+from typing import Callable
 
 logger = logging.getLogger(__name__)
 
 
 class WorkflowBuilder:
-    def __init__(self, task_map):
+    def __init__(
+        self,
+        task_map: dict[OperationEnum, Callable[..., int | float]],
+        task_chord_map: dict[OperationEnum, Callable[..., int | float]] = None,
+    ):
         self.task_map = task_map
+        self.task_chord_map = task_chord_map
 
     def build(self, node) -> tuple[AsyncResult, str]:
         workflow_or_result = self._build_recursive(node)
@@ -39,81 +44,107 @@ class WorkflowBuilder:
         is_left_constant = isinstance(node.left, (int, float))
         is_right_constant = isinstance(node.right, (int, float))
 
+        # Both are constants
         if is_left_constant and is_right_constant:
             op_task = self.task_map[node.operation]
             return op_task.s(node.left, node.right)
 
+        # Both are same operation and commutative
         if (
             node.operation.is_commutative
             and not is_left_constant
             and not is_right_constant
         ):
             return self._build_flat_workflow(node)
-        else:
-            left_workflow = self._build_recursive(node.left)
-            right_workflow = self._build_recursive(node.right)
 
-            is_left_task = isinstance(left_workflow, Signature)
-            is_right_task = isinstance(right_workflow, Signature)
+        left_workflow = self._build_recursive(node.left)
+        right_workflow = self._build_recursive(node.right)
 
-            op_task = self.task_map[node.operation]
+        op_task = self.task_map[node.operation]
 
-            if is_left_task and not is_right_task:
-                return chain(
-                    left_workflow, op_task.s(y=right_workflow, is_left_fixed=False)
-                )
-            elif not is_left_task and is_right_task:
-                return chain(
-                    right_workflow, op_task.s(y=left_workflow, is_left_fixed=True)
-                )
-            else:
-                parallel_tasks = group(left_workflow, right_workflow)
-                return chord(parallel_tasks, op_task.s())
+        # Left is constant, Right is OperationNode
+        if not is_left_constant and is_right_constant:
+            return left_workflow | op_task.s(y=right_workflow, is_left_fixed=False)
 
-    def _collect_operands(self, node, operation: OperationEnum):
-        operands = []
-        if isinstance(node, ExpressionNode) and node.operation == operation:
-            operands.extend(self._collect_operands(node.left, operation))
-            operands.extend(self._collect_operands(node.right, operation))
-        else:
-            operands.append(node)
-        return operands
+        # Left is OperationNode, Right is constant
+        if is_left_constant and not is_right_constant:
+            return right_workflow | op_task.s(y=left_workflow, is_left_fixed=True)
+
+        # Both are OperationNodes
+        op_chord_task = self.task_chord_map.get(node.operation)
+        parallel_tasks = group(left_workflow, right_workflow)
+
+        return chord(parallel_tasks, op_chord_task.s())
 
     def _build_flat_workflow(self, node: ExpressionNode) -> Signature | float:
         op_task = self.task_map[node.operation]
+        aggregator_task = (
+            xsum_task.s() if node.operation == OperationEnum.ADD else xprod_task.s()
+        )
 
-        all_operands = self._collect_operands(node, node.operation)
-        child_workflows = [self._build_recursive(op) for op in all_operands]
+        flatten_commutative_nodes = self._flatten_commutative_operands(
+            node, node.operation
+        )
+        child_workflows = [
+            self._build_recursive(sub_node) for sub_node in flatten_commutative_nodes
+        ]
 
-        tasks = [wf for wf in child_workflows if isinstance(wf, Signature)]
-        constants = [wf for wf in child_workflows if not isinstance(wf, Signature)]
+        tasks = [
+            workflow for workflow in child_workflows if isinstance(workflow, Signature)
+        ]
+        constants = [
+            workflow
+            for workflow in child_workflows
+            if not isinstance(workflow, Signature)
+        ]
 
-        if constants:
-            if node.operation == OperationEnum.ADD:
-                if len(constants) > 1:
-                    constants_task = xsum.s(constants)
-                    tasks.append(constants_task)
+        identity = 0.0 if node.operation == OperationEnum.ADD else 1.0
+        num_tasks = len(tasks)
+        num_constants = len(constants)
 
-            elif node.operation == OperationEnum.MUL:
-                if len(constants) > 1:
-                    constants_task = xprod.s(constants)
-                    tasks.append(constants_task)
-
+        # Case: No tasks (only constants)
         if not tasks:
-            if len(constants) == 1:
+            if num_constants == 0:
+                return identity
+            if num_constants == 1:
                 return constants[0]
-            return 1.0 if node.operation == OperationEnum.MUL else 0.0
+            if num_constants == 2:
+                return op_task.s(constants[0], constants[1])
+            return aggregator_task.s(constants)
 
-        if len(tasks) == 1:
-            if len(constants) == 1 and len(child_workflows) > 1:
-                return chain(tasks[0], op_task.s(y=constants[0], is_left_fixed=False))
-            return tasks[0]
+        # Case: Single task
+        if num_tasks == 1:
+            if not constants:
+                return tasks[0]
+            if num_constants == 1:
+                return tasks[0] | op_task.s(y=constants[0])
+            # num_constants > 1
+            tasks.append(aggregator_task.s(constants))
+            return chord(header=group(tasks), body=aggregator_task)
 
-        aggregator_task = xsum.s() if node.operation == OperationEnum.ADD else xprod.s()
+        # Case: Multiple tasks
+        result = chord(header=group(tasks), body=aggregator_task)
 
-        final_workflow = chord(header=group(tasks), body=aggregator_task)
+        if num_constants == 1:
+            return result | op_task.s(y=constants[0])
+        if num_constants > 1:
+            tasks.append(aggregator_task.s(constants))
+            return chord(header=group(tasks), body=aggregator_task)
 
-        if len(constants) == 1 and len(child_workflows) > len(tasks):
-            return chain(tasks[0], op_task.s(y=constants[0], is_left_fixed=False))
+        return identity
 
-        return final_workflow
+    def _flatten_commutative_operands(
+        self, node, operation: OperationEnum
+    ) -> list[ExpressionNode | float | int]:
+        sub_commutative_expression = list[ExpressionNode | float | int]
+        if not isinstance(node, ExpressionNode) or node.operation != operation:
+            return sub_commutative_expression.append(node)
+
+        sub_commutative_expression.extend(
+            self._flatten_commutative_operands(node.left, operation)
+        )
+        sub_commutative_expression.extend(
+            self._flatten_commutative_operands(node.right, operation)
+        )
+
+        return sub_commutative_expression

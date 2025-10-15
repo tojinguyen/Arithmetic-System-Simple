@@ -4,8 +4,8 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-@app.task(name="xsum", queue="add_tasks")
-def xsum(numbers: list[float]) -> float:
+@app.task(name="xsum_task", queue="add_tasks")
+def xsum_task(numbers: list[float]) -> float:
     if not isinstance(numbers, list):
         raise TypeError(f"numbers must be a list, got {type(numbers).__name__}")
 

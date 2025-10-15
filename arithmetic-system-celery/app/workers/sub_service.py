@@ -4,8 +4,8 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-@app.task(name="subtract", queue="sub_tasks")
-def subtract(x: float, y: float = None, is_left_fixed: bool = False) -> float:
+@app.task(name="subtract_task", queue="sub_tasks")
+def subtract_task(x: float, y: float = None, is_left_fixed: bool = False) -> float:
     if not isinstance(x, (int, float)):
         raise TypeError(f"x must be int or float, got {type(x).__name__}")
 

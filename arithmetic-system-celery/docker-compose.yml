@@ -15,11 +15,19 @@ services:
     build: .
     command: uv run celery -A app.celery worker -Q sub_tasks --loglevel=info
     depends_on: [rabbitmq, redis]
+  sub_list_worker:
+    build: .
+    command: uv run celery -A app.celery worker -Q sub_tasks --loglevel=info
+    depends_on: [rabbitmq, redis]
   mul_worker:
     build: .
     command: uv run celery -A app.celery worker -Q mul_tasks --loglevel=info
     depends_on: [rabbitmq, redis]
   div_worker:
+    build: .
+    command: uv run celery -A app.celery worker -Q div_tasks --loglevel=info
+    depends_on: [rabbitmq, redis]
+  div_list_worker:
     build: .
     command: uv run celery -A app.celery worker -Q div_tasks --loglevel=info
     depends_on: [rabbitmq, redis]

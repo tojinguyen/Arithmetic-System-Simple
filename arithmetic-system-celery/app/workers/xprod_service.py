@@ -5,8 +5,8 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-@app.task(name="xprod", queue="mul_tasks")
-def xprod(numbers):
+@app.task(name="xprod_task", queue="mul_tasks")
+def xprod_task(numbers):
     if not isinstance(numbers, list):
         raise TypeError(f"numbers must be a list, got {type(numbers).__name__}")
 

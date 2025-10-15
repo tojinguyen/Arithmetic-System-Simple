@@ -4,8 +4,8 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-@app.task(name="divide", queue="div_tasks")
-def divide(x: list[int | float]):
+@app.task(name="divide_list_task", queue="div_tasks")
+def divide_list_task(x: list[int | float]):
     if not isinstance(x, list):
         raise TypeError(f"Divide task expects a list, got {type(x).__name__}")
 

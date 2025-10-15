@@ -6,7 +6,6 @@ logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 
-
 app = FastAPI()
 
 app.include_router(evaluate_router, prefix="/api")
