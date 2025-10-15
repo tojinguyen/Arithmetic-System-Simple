@@ -79,7 +79,7 @@ class WorkflowBuilder:
     def _build_flat_workflow(self, node: ExpressionNode) -> Signature | float:
         op_task = self.task_map[node.operation]
         aggregator_task = (
-            xsum_task.s() if node.operation == OperationEnum.ADD else xprod_task.s()
+            xsum_task if node.operation == OperationEnum.ADD else xprod_task
         )
 
         flatten_commutative_nodes = self._flatten_commutative_operands(
@@ -120,25 +120,30 @@ class WorkflowBuilder:
                 return tasks[0] | op_task.s(y=constants[0])
             # num_constants > 1
             tasks.append(aggregator_task.s(constants))
-            return chord(header=group(tasks), body=aggregator_task)
+            return chord(header=group(tasks), body=aggregator_task.s())
 
         # Case: Multiple tasks
-        result = chord(header=group(tasks), body=aggregator_task)
+        result = chord(header=group(tasks), body=aggregator_task.s())
 
         if num_constants == 1:
             return result | op_task.s(y=constants[0])
         if num_constants > 1:
             tasks.append(aggregator_task.s(constants))
-            return chord(header=group(tasks), body=aggregator_task)
+            return chord(header=group(tasks), body=aggregator_task.s())
 
         return identity
 
     def _flatten_commutative_operands(
         self, node, operation: OperationEnum
     ) -> list[ExpressionNode | float | int]:
-        sub_commutative_expression = list[ExpressionNode | float | int]
+        sub_commutative_expression: list[ExpressionNode | float | int] = []
+
+        if node is None:
+            return sub_commutative_expression
+
         if not isinstance(node, ExpressionNode) or node.operation != operation:
-            return sub_commutative_expression.append(node)
+            sub_commutative_expression.append(node)
+            return sub_commutative_expression
 
         sub_commutative_expression.extend(
             self._flatten_commutative_operands(node.left, operation)
