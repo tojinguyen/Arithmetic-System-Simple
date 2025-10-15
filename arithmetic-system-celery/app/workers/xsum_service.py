@@ -1,14 +1,19 @@
 from ..celery import app
 import logging
 
+logger = logging.getLogger(__name__)
+
 
 @app.task(name="xsum", queue="add_tasks")
-def xsum(numbers):
+def xsum(numbers: list[float]) -> float:
+    if not isinstance(numbers, list):
+        raise TypeError(f"numbers must be a list, got {type(numbers).__name__}")
+
+    if not all(isinstance(i, (int, float)) for i in numbers):
+        raise TypeError("All elements in numbers must be int or float.")
+
     try:
-        if not all(isinstance(i, (int, float)) for i in numbers):
-            raise ValueError("All elements must be numbers.")
-        result = sum(numbers)
-        return result
+        return sum(numbers)
     except Exception as e:
-        logging.error(f"Error in summation: {e}")
+        logger.error(f"Error in xsum task for input {numbers}: {e}")
         raise

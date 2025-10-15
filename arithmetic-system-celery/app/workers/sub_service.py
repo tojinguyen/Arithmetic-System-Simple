@@ -1,23 +1,21 @@
 from ..celery import app
 import logging
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
 @app.task(name="subtract", queue="sub_tasks")
-def subtract(x, y=None, is_left_fixed=False):
+def subtract(x: float, y: float = None, is_left_fixed: bool = False) -> float:
+    if not isinstance(x, (int, float)):
+        raise TypeError(f"x must be int or float, got {type(x).__name__}")
+
+    if not isinstance(y, (int, float)):
+        raise TypeError(f"y must be int or float, got {type(y).__name__}")
+
+    minuend, subtrahend = (y, x) if is_left_fixed else (x, y)
+
     try:
-        if isinstance(x, list):
-            if len(x) != 2:
-                raise ValueError(
-                    f"Subtract task expects 2 elements from chord, got {len(x)}"
-                )
-            return x[0] - x[1]
-        if is_left_fixed:
-            return y - x
-        else:
-            return x - y
+        return minuend - subtrahend
     except Exception as exc:
-        logger.error(f"Error in subtract_task: {exc}")
+        logger.error(f"Error in subtract task: {minuend} - {subtrahend}: {exc}")
         raise

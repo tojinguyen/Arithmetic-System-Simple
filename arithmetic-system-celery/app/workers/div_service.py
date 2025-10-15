@@ -6,25 +6,20 @@ logger = logging.getLogger(__name__)
 
 
 @app.task(name="divide", queue="div_tasks")
-def divide(x, y=None, is_left_fixed=False):
-    try:
-        if isinstance(x, list):
-            if len(x) != 2:
-                raise ValueError(
-                    f"Divide task expects 2 elements from chord, got {len(x)}"
-                )
-            if x[1] == 0:
-                raise ValueError("Cannot divide by zero.")
-            return x[0] / x[1]
+def divide(x: int | float, y: int | float, is_left_fixed: bool = False) -> float:
+    if not isinstance(x, (int, float)):
+        raise TypeError(f"x must be int or float, got {type(x).__name__}")
 
-        if is_left_fixed:
-            if x == 0:
-                raise ValueError("Cannot divide by zero.")
-            return y / x
-        else:
-            if y == 0:
-                raise ValueError("Cannot divide by zero.")
-            return x / y
+    if y is not None and not isinstance(y, (int, float)):
+        raise TypeError(f"y must be int or float, got {type(y).__name__}")
+
+    dividend, divisor = (y, x) if is_left_fixed else (x, y)
+
+    if divisor == 0:
+        raise ZeroDivisionError(f"Cannot divide {dividend} by zero.")
+
+    try:
+        return dividend / divisor
     except Exception as e:
-        logger.error(f"Error in division: {e}")
+        logger.error(f"Error in division: {dividend} / {divisor}: {e}")
         raise
