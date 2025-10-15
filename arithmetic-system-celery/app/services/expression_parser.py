@@ -46,8 +46,6 @@ class ExpressionParser:
 
     def __init__(self):
         self.operations = []
-        self.parallel_groups = []
-        self.sequential_chains = []
 
     def parse(self, expression: str) -> ExpressionNode | float | int:
         clean_expr = self._clean_expression(expression)

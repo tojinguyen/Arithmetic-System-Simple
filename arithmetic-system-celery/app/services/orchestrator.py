@@ -24,19 +24,9 @@ class WorkflowOrchestrator:
         self.builder = WorkflowBuilder(self.task_map)
 
     def calculate(self, expression: str) -> CalculateExpressionResponse:
-        try:
-            parsed = self.parser.parse(expression)
-            workflow_async_result, workflow_str = self.builder.build(parsed)
-            final_result = workflow_async_result.get(timeout=3)
-            logger.info(f"Final Result: {final_result}")
+        parsed = self.parser.parse(expression)
+        workflow_async_result, workflow_str = self.builder.build(parsed)
+        final_result = workflow_async_result.get(timeout=3)
+        logger.info(f"Final Result: {final_result}")
 
-            return CalculateExpressionResponse(
-                result=final_result, workflow=workflow_str
-            )
-        except Exception as e:
-            logger.error(
-                f"Error while calculating '{expression}': {str(e)}", exc_info=True
-            )
-            raise ValueError(
-                f"Cannot calculate expression: {expression}. Error: {str(e)}"
-            )
+        return CalculateExpressionResponse(result=final_result, workflow=workflow_str)
