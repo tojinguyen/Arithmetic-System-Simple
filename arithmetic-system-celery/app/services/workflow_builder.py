@@ -56,19 +56,10 @@ class WorkflowBuilder:
             logger.info(f"Building constant workflow for operation: {node.operation}")
             return op_task.s(node.left, node.right)
 
-        logging.info(
-            f"Left is constant: {is_left_constant}, Right is constant: {is_right_constant}"
-        )
-        logging.info(
-            f"Check if commutative: {node.operation.is_commutative and not is_left_constant and not is_right_constant}"
-        )
         # Both are same operation and commutative
         if node.operation.is_commutative and (
             not is_left_constant or not is_right_constant
         ):
-            logger.info(
-                f"Building flat workflow for commutative operation: {node.operation}"
-            )
             return self._build_flat_workflow(node)
 
         left_workflow = self._build_recursive(node.left)
@@ -87,10 +78,6 @@ class WorkflowBuilder:
         # Both are OperationNodes
         op_chord_task = self.task_chord_map.get(node.operation)
         parallel_tasks = group(left_workflow, right_workflow)
-        logger.info(
-            f"Creating chord for operation: {node.operation} with tasks: {parallel_tasks}"
-        )
-
         return chord(parallel_tasks, op_chord_task.s())
 
     def _build_flat_workflow(self, node: ExpressionNode) -> Signature | float:
@@ -102,7 +89,6 @@ class WorkflowBuilder:
         flatten_commutative_nodes = self._flatten_commutative_operands(
             node, node.operation
         )
-        logger.info(f"Flattened commutative nodes: {flatten_commutative_nodes}")
 
         child_workflows = [
             self._build_recursive(sub_node) for sub_node in flatten_commutative_nodes
@@ -174,24 +160,20 @@ class WorkflowBuilder:
         return sub_commutative_expression
 
     def _signature_to_string(self, sig: Signature) -> str:
-        """Convert Celery Signature to readable workflow string with arguments"""
         if isinstance(sig, chord):
             header_tasks = [self._signature_to_string(task) for task in sig.tasks]
             body_str = self._signature_to_string(sig.body)
             return f"chord([{', '.join(header_tasks)}], {body_str})"
 
-        if hasattr(sig, "tasks"):  # group
+        if hasattr(sig, "tasks"):
             task_strings = [self._signature_to_string(task) for task in sig.tasks]
             return f"group([{', '.join(task_strings)}])"
 
-        # Simple signature with chain
         task_name = sig.task.split(".")[-1] if hasattr(sig, "task") else "unknown"
 
-        # Get arguments from signature
         args_str = self._format_args(sig)
         task_with_args = f"{task_name}{args_str}" if args_str else task_name
 
-        # Check if it's a chain
         if hasattr(sig, "options") and "link" in sig.options:
             next_sig = sig.options["link"]
             return f"{task_with_args} | {self._signature_to_string(next_sig)}"
@@ -199,33 +181,26 @@ class WorkflowBuilder:
         return task_with_args
 
     def _format_args(self, sig: Signature) -> str:
-        """Format signature arguments for display"""
         args = []
         kwargs = {}
 
-        # Get args
         if hasattr(sig, "args") and sig.args:
             args = list(sig.args)
 
-        # Get kwargs
         if hasattr(sig, "kwargs") and sig.kwargs:
             kwargs = dict(sig.kwargs)
 
-        # Build args string
         parts = []
 
-        # Add positional args
         for arg in args:
             if isinstance(arg, (int, float)):
                 parts.append(str(arg))
             elif isinstance(arg, list):
-                # For list of numbers (used in aggregator tasks)
                 list_str = ", ".join(str(x) for x in arg if isinstance(x, (int, float)))
                 parts.append(f"[{list_str}]")
             else:
                 parts.append("?")
 
-        # Add keyword args
         for key, value in kwargs.items():
             if isinstance(value, (int, float)):
                 parts.append(f"{key}={value}")
