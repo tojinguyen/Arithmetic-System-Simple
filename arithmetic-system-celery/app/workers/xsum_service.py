@@ -1,7 +1,8 @@
 from ..celery import app
 import logging
 
-@app.task(name='xsum', queue='add_tasks')
+
+@app.task(name="xsum", queue="add_tasks")
 def xsum(numbers):
     try:
         if not all(isinstance(i, (int, float)) for i in numbers):

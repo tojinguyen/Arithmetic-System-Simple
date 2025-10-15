@@ -1,7 +1,8 @@
 from ..celery import app
 from math import prod
 
-@app.task(name='xprod', queue='mul_tasks')
+
+@app.task(name="xprod", queue="mul_tasks")
 def xprod(numbers):
     try:
         if not all(isinstance(i, (int, float)) for i in numbers):

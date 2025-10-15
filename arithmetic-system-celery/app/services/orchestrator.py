@@ -1,5 +1,4 @@
 import logging
-from typing import Dict, Any
 
 from ..workers.add_service import add as add_task
 from ..workers.mul_service import multiply as mul_task
@@ -11,6 +10,7 @@ from .workflow_builder import WorkflowBuilder
 from ..models.models import CalculateExpressionResponse
 
 logger = logging.getLogger(__name__)
+
 
 class WorkflowOrchestrator:
     def __init__(self):
@@ -31,9 +31,12 @@ class WorkflowOrchestrator:
             logger.info(f"Final Result: {final_result}")
 
             return CalculateExpressionResponse(
-                result=final_result,
-                original_expression=parsed.original_expression
+                result=final_result, original_expression=parsed.original_expression
             )
         except Exception as e:
-            logger.error(f"Error while calculating '{expression}': {str(e)}", exc_info=True)
-            raise ValueError(f"Cannot calculate expression: {expression}. Error: {str(e)}")
+            logger.error(
+                f"Error while calculating '{expression}': {str(e)}", exc_info=True
+            )
+            raise ValueError(
+                f"Cannot calculate expression: {expression}. Error: {str(e)}"
+            )

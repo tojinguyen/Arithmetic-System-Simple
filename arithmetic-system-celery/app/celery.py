@@ -1,17 +1,17 @@
 from celery import Celery
 
 app = Celery(
-    'arithmetic_system',
-    broker='pyamqp://guest@rabbitmq//',
-    backend='redis://redis:6379/0',
+    "arithmetic_system",
+    broker="pyamqp://guest@rabbitmq//",
+    backend="redis://redis:6379/0",
     include=[
-        'app.workers.add_service',
-        'app.workers.sub_service',
-        'app.workers.mul_service',
-        'app.workers.div_service',
-        'app.workers.xsum_service',
-        'app.workers.xprod_service'
-    ]
+        "app.workers.add_service",
+        "app.workers.sub_service",
+        "app.workers.mul_service",
+        "app.workers.div_service",
+        "app.workers.xsum_service",
+        "app.workers.xprod_service",
+    ],
 )
 
 app.conf.update(

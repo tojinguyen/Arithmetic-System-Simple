@@ -4,12 +4,15 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-@app.task(name='divide', queue='div_tasks')
+
+@app.task(name="divide", queue="div_tasks")
 def divide(x, y=None, is_left_fixed=False):
     try:
         if isinstance(x, list):
             if len(x) != 2:
-                raise ValueError(f"Divide task expects 2 elements from chord, got {len(x)}")
+                raise ValueError(
+                    f"Divide task expects 2 elements from chord, got {len(x)}"
+                )
             if x[1] == 0:
                 raise ValueError("Cannot divide by zero.")
             return x[0] / x[1]

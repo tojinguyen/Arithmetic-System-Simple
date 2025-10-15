@@ -2,7 +2,9 @@ from fastapi import FastAPI
 from .api.calculate_expression import router as evaluate_router
 import logging
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
 
 
 app = FastAPI()

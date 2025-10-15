@@ -7,12 +7,14 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 orchestrator = WorkflowOrchestrator()
 
+
 @router.get("/calculate", response_model=CalculateExpressionResponse)
-def evaluate(expression: str = Query(..., description="Arithmetic expression to evaluate")) -> CalculateExpressionResponse:
+def evaluate(
+    expression: str = Query(..., description="Arithmetic expression to evaluate"),
+) -> CalculateExpressionResponse:
     try:
         logger.info(f"Received expression to evaluate: {expression}")
         result = orchestrator.calculate(expression)
         return CalculateExpressionResponse(result)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
-

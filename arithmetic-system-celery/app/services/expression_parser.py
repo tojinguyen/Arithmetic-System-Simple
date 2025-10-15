@@ -7,6 +7,7 @@ from enum import Enum
 
 logger = logging.getLogger(__name__)
 
+
 class OperationEnum(str, Enum):
     ADD = "add"
     SUB = "sub"
@@ -24,20 +25,22 @@ class ExpressionNode:
     left: "ExpressionNode" | float
     right: "ExpressionNode" | float
 
+
 @dataclass
 class ParsedExpression:
     expression_tree: "ExpressionNode" | float | None
-    
-REGEX_VALID_CHARACTERS = re.compile(r'^[0-9+\-*/().%\s]+$')
-pattern = re.compile(r'\s+')
+
+
+REGEX_VALID_CHARACTERS = re.compile(r"^[0-9+\-*/().%\s]+$")
+pattern = re.compile(r"\s+")
 
 
 class ExpressionParser:
     OPERATORS = {
-        '+': OperationEnum.ADD,
-        '-': OperationEnum.SUB,
-        '*': OperationEnum.MUL,
-        '/': OperationEnum.DIV
+        "+": OperationEnum.ADD,
+        "-": OperationEnum.SUB,
+        "*": OperationEnum.MUL,
+        "/": OperationEnum.DIV,
     }
 
     def __init__(self):
@@ -48,13 +51,12 @@ class ExpressionParser:
     def parse(self, expression: str) -> ParsedExpression:
         try:
             clean_expr = self._clean_expression(expression)
-            tree = ast.parse(clean_expr, mode='eval')
+            tree = ast.parse(clean_expr, mode="eval")
             expr_tree = self._build_expression_tree(tree.body, level=0)
             self._log_tree_structure(expr_tree)
 
             result = ParsedExpression(
-                expression_tree=expr_tree,
-                original_expression=expression
+                expression_tree=expr_tree, original_expression=expression
             )
 
             return result
@@ -72,9 +74,7 @@ class ExpressionParser:
             right = self._build_expression_tree(node.right, level + 1)
 
             result = ExpressionNode(
-                operation=self.OPERATORS[op_symbol],
-                left=left,
-                right=right
+                operation=self.OPERATORS[op_symbol], left=left, right=right
             )
 
             return result
@@ -88,7 +88,9 @@ class ExpressionParser:
                 if isinstance(operand, (int, float)):
                     return -operand
                 else:
-                    raise ValueError("Unary subtraction on complex expression is not supported")
+                    raise ValueError(
+                        "Unary subtraction on complex expression is not supported"
+                    )
             else:
                 raise ValueError(f"Unsupported unary operator: {type(node.op)}")
         else:
@@ -96,24 +98,24 @@ class ExpressionParser:
             raise ValueError(f"Unsupported node type: {type(node)}")
 
     def _clean_expression(self, expression: str) -> str:
-        clean = re.sub(r'\s+', '', expression)
+        clean = re.sub(r"\s+", "", expression)
 
         if not pattern.match(clean):
             raise ValueError("Expression contains invalid characters")
         return clean
 
     def _get_operator_symbol(self, op) -> str:
-        op_map = {
-            ast.Add: '+',
-            ast.Sub: '-',
-            ast.Mult: '*',
-            ast.Div: '/'
-        }
-        symbol = op_map.get(type(op), '?')
+        op_map = {ast.Add: "+", ast.Sub: "-", ast.Mult: "*", ast.Div: "/"}
+        symbol = op_map.get(type(op), "?")
         return symbol
 
-    def _log_tree_structure(self, tree: Union[ExpressionNode, float], prefix: str = "", is_last: bool = True,
-                            depth: int = 0) -> None:
+    def _log_tree_structure(
+        self,
+        tree: Union[ExpressionNode, float],
+        prefix: str = "",
+        is_last: bool = True,
+        depth: int = 0,
+    ) -> None:
         if depth == 0:
             logger.info("EXPRESSION TREE STRUCTURE:")
             logger.info("=" * 50)

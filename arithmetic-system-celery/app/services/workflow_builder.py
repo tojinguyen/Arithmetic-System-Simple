@@ -18,11 +18,13 @@ class WorkflowBuilder:
 
         if isinstance(workflow_or_result, (int, float)):
             task_id = str(uuid.uuid4())
-            async_result = EagerResult(task_id, workflow_or_result, 'SUCCESS')
+            async_result = EagerResult(task_id, workflow_or_result, "SUCCESS")
         elif isinstance(workflow_or_result, Signature):
             async_result = workflow_or_result.apply_async()
         else:
-            raise TypeError(f"Build process returned an unexpected type: {type(workflow_or_result)}")
+            raise TypeError(
+                f"Build process returned an unexpected type: {type(workflow_or_result)}"
+            )
 
         return async_result
 
@@ -39,7 +41,11 @@ class WorkflowBuilder:
             op_task = self.task_map[node.operation]
             return op_task.s(node.left, node.right)
 
-        if node.operation.is_commutative and not is_left_constant and not is_right_constant:
+        if (
+            node.operation.is_commutative
+            and not is_left_constant
+            and not is_right_constant
+        ):
             return self._build_flat_workflow(node)
         else:
             left_workflow = self._build_recursive(node.left)
@@ -51,9 +57,13 @@ class WorkflowBuilder:
             op_task = self.task_map[node.operation]
 
             if is_left_task and not is_right_task:
-                return chain(left_workflow, op_task.s(y=right_workflow, is_left_fixed=False))
+                return chain(
+                    left_workflow, op_task.s(y=right_workflow, is_left_fixed=False)
+                )
             elif not is_left_task and is_right_task:
-                return chain(right_workflow, op_task.s(y=left_workflow, is_left_fixed=True))
+                return chain(
+                    right_workflow, op_task.s(y=left_workflow, is_left_fixed=True)
+                )
             else:
                 parallel_tasks = group(left_workflow, right_workflow)
                 return chord(parallel_tasks, op_task.s())

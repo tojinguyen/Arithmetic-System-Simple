@@ -1,63 +1,37 @@
+---
 version: '3.9'
-
 services:
   rabbitmq:
     image: rabbitmq:4.1.4-management
-    ports:
-      - "15672:15672"
-      - "5672:5672"
-
+    ports: ["15672:15672", "5672:5672"]
   redis:
     image: redis:7.2
-    ports:
-      - "6379:6379"
-
+    ports: ["6379:6379"]
   add_worker:
-    build: ./arithmetic-system
-    command: celery -A app.celery worker -Q add_tasks --loglevel=info
-    depends_on:
-      - rabbitmq
-      - redis
-
+    build: .
+    command: uv run celery -A app.celery worker -Q add_tasks --loglevel=info
+    depends_on: [rabbitmq, redis]
   sub_worker:
-    build: ./arithmetic-system
-    command: celery -A app.celery worker -Q sub_tasks --loglevel=info
-    depends_on:
-      - rabbitmq
-      - redis
-
+    build: .
+    command: uv run celery -A app.celery worker -Q sub_tasks --loglevel=info
+    depends_on: [rabbitmq, redis]
   mul_worker:
-    build: ./arithmetic-system
-    command: celery -A app.celery worker -Q mul_tasks --loglevel=info
-    depends_on:
-      - rabbitmq
-      - redis
-
+    build: .
+    command: uv run celery -A app.celery worker -Q mul_tasks --loglevel=info
+    depends_on: [rabbitmq, redis]
   div_worker:
-    build: ./arithmetic-system
-    command: celery -A app.celery worker -Q div_tasks --loglevel=info
-    depends_on:
-      - rabbitmq
-      - redis
-
+    build: .
+    command: uv run celery -A app.celery worker -Q div_tasks --loglevel=info
+    depends_on: [rabbitmq, redis]
   xsum_worker:
-    build: ./arithmetic-system
-    command: celery -A app.celery worker -Q add_tasks --loglevel=info
-    depends_on:
-      - rabbitmq
-      - redis
-
+    build: .
+    command: uv run celery -A app.celery worker -Q add_tasks --loglevel=info
+    depends_on: [rabbitmq, redis]
   xprod_worker:
-    build: ./arithmetic-system
-    command: celery -A app.celery worker -Q mul_tasks --loglevel=info
-    depends_on:
-      - rabbitmq
-      - redis
-
+    build: .
+    command: uv run celery -A app.celery worker -Q mul_tasks --loglevel=info
+    depends_on: [rabbitmq, redis]
   entrypoint:
-    build: ./arithmetic-system
-    ports:
-      - "8000:8000"
-    depends_on:
-      - rabbitmq
-      - redis
+    build: .
+    ports: ["8000:8000"]
+    depends_on: [rabbitmq, redis]
