@@ -1,3 +1,4 @@
+from __future__ import annotations
 import re
 import ast
 import logging
@@ -6,6 +7,10 @@ from dataclasses import dataclass
 from enum import Enum
 
 logger = logging.getLogger(__name__)
+
+
+REGEX_VALID_CHARACTERS = re.compile(r"^[0-9+\-*/().%\s]+$")
+pattern = re.compile(REGEX_VALID_CHARACTERS)
 
 
 class OperationEnum(str, Enum):
@@ -22,17 +27,13 @@ class OperationEnum(str, Enum):
 @dataclass
 class ExpressionNode:
     operation: OperationEnum
-    left: "ExpressionNode" | float
-    right: "ExpressionNode" | float
+    left: ExpressionNode | float
+    right: ExpressionNode | float
 
 
 @dataclass
 class ParsedExpression:
     expression_tree: "ExpressionNode" | float | None
-
-
-REGEX_VALID_CHARACTERS = re.compile(r"^[0-9+\-*/().%\s]+$")
-pattern = re.compile(r"\s+")
 
 
 class ExpressionParser:
@@ -49,18 +50,22 @@ class ExpressionParser:
         self.sequential_chains = []
 
     def parse(self, expression: str) -> ParsedExpression:
+        clean_expr = self._clean_expression(expression)
         try:
-            clean_expr = self._clean_expression(expression)
             tree = ast.parse(clean_expr, mode="eval")
+        except SyntaxError as e:
+            logger.error(f"Syntax error in expression: {expression}. Error: {str(e)}")
+            raise ValueError(
+                f"Syntax error in expression: {expression}. Error: {str(e)}"
+            )
+
+        try:
             expr_tree = self._build_expression_tree(tree.body, level=0)
             self._log_tree_structure(expr_tree)
 
-            result = ParsedExpression(
-                expression_tree=expr_tree, original_expression=expression
-            )
-
-            return result
+            return ParsedExpression(expression_tree=expr_tree)
         except Exception as e:
+            logger.error(f"Invalid expression: {expression}. Error: {str(e)}")
             raise ValueError(f"Invalid expression: {expression}. Error: {str(e)}")
 
     def _build_expression_tree(self, node, level: int = 0) -> ExpressionNode | float:

@@ -35,7 +35,6 @@ def test_calculate_valid_expressions(
     )
 
     data = response.json()
-    assert data["original_expression"] == expression
     assert data["result"] == pytest.approx(expected_result)
 
 
@@ -77,7 +76,6 @@ def test_calculate_with_extra_whitespace(client: TestClient):
     assert response.status_code == 200
     data = response.json()
     assert data["result"] == 30.0
-    assert data["original_expression"] == expression
 
 
 def test_calculate_no_expression_provided(client: TestClient):

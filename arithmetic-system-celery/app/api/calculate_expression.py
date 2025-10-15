@@ -15,6 +15,6 @@ def evaluate(
     try:
         logger.info(f"Received expression to evaluate: {expression}")
         result = orchestrator.calculate(expression)
-        return CalculateExpressionResponse(result)
+        return result
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))

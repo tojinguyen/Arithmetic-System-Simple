@@ -30,9 +30,7 @@ class WorkflowOrchestrator:
             final_result = workflow_result.get(timeout=30)
             logger.info(f"Final Result: {final_result}")
 
-            return CalculateExpressionResponse(
-                result=final_result, original_expression=parsed.original_expression
-            )
+            return CalculateExpressionResponse(result=final_result)
         except Exception as e:
             logger.error(
                 f"Error while calculating '{expression}': {str(e)}", exc_info=True

@@ -29,4 +29,6 @@ COPY . .
 # Expose cổng
 EXPOSE 8000
 
-CMD ["uv", "run", "celery", "-A", "app.worker", "worker", "--loglevel=info"]
+# CMD ["uv", "run", "celery", "-A", "app.worker", "worker", "--loglevel=info"]
+
+CMD ["uv", "run", "python", "main.py"]
