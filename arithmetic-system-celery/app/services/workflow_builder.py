@@ -25,8 +25,10 @@ class WorkflowBuilder:
         if isinstance(workflow_or_result, (int, float)):
             task_id = str(uuid.uuid4())
             async_result = EagerResult(task_id, workflow_or_result, "SUCCESS")
+            workflow_string = f"constant({workflow_or_result})"
         elif isinstance(workflow_or_result, Signature):
             async_result = workflow_or_result.apply_async()
+            workflow_string = self._signature_to_string(workflow_or_result)
         else:
             raise TypeError(
                 f"Build process returned an unexpected type: {type(workflow_or_result)}"
@@ -153,3 +155,66 @@ class WorkflowBuilder:
         )
 
         return sub_commutative_expression
+
+    def _signature_to_string(self, sig: Signature) -> str:
+        """Convert Celery Signature to readable workflow string with arguments"""
+        if isinstance(sig, chord):
+            header_tasks = [self._signature_to_string(task) for task in sig.tasks]
+            body_str = self._signature_to_string(sig.body)
+            return f"chord([{', '.join(header_tasks)}], {body_str})"
+
+        if hasattr(sig, "tasks"):  # group
+            task_strings = [self._signature_to_string(task) for task in sig.tasks]
+            return f"group([{', '.join(task_strings)}])"
+
+        # Simple signature with chain
+        task_name = sig.task.split(".")[-1] if hasattr(sig, "task") else "unknown"
+
+        # Get arguments from signature
+        args_str = self._format_args(sig)
+        task_with_args = f"{task_name}{args_str}" if args_str else task_name
+
+        # Check if it's a chain
+        if hasattr(sig, "options") and "link" in sig.options:
+            next_sig = sig.options["link"]
+            return f"{task_with_args} | {self._signature_to_string(next_sig)}"
+
+        return task_with_args
+
+    def _format_args(self, sig: Signature) -> str:
+        """Format signature arguments for display"""
+        args = []
+        kwargs = {}
+
+        # Get args
+        if hasattr(sig, "args") and sig.args:
+            args = list(sig.args)
+
+        # Get kwargs
+        if hasattr(sig, "kwargs") and sig.kwargs:
+            kwargs = dict(sig.kwargs)
+
+        # Build args string
+        parts = []
+
+        # Add positional args
+        for arg in args:
+            if isinstance(arg, (int, float)):
+                parts.append(str(arg))
+            elif isinstance(arg, list):
+                # For list of numbers (used in aggregator tasks)
+                list_str = ", ".join(str(x) for x in arg if isinstance(x, (int, float)))
+                parts.append(f"[{list_str}]")
+            else:
+                parts.append("?")
+
+        # Add keyword args
+        for key, value in kwargs.items():
+            if isinstance(value, (int, float)):
+                parts.append(f"{key}={value}")
+            elif key in ["is_left_fixed"]:
+                parts.append(f"{key}={value}")
+            else:
+                parts.append(f"{key}=?")
+
+        return f"({', '.join(parts)})" if parts else ""
