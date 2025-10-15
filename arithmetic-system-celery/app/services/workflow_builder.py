@@ -43,20 +43,32 @@ class WorkflowBuilder:
         if not isinstance(node, ExpressionNode):
             raise TypeError(f"Invalid node type: {type(node)}")
 
+        logger.info(
+            f"Building workflow for node: {node.operation} with left={node.left} and right={node.right}"
+        )
+
         is_left_constant = isinstance(node.left, (int, float))
         is_right_constant = isinstance(node.right, (int, float))
 
         # Both are constants
         if is_left_constant and is_right_constant:
             op_task = self.task_map[node.operation]
+            logger.info(f"Building constant workflow for operation: {node.operation}")
             return op_task.s(node.left, node.right)
 
+        logging.info(
+            f"Left is constant: {is_left_constant}, Right is constant: {is_right_constant}"
+        )
+        logging.info(
+            f"Check if commutative: {node.operation.is_commutative and not is_left_constant and not is_right_constant}"
+        )
         # Both are same operation and commutative
-        if (
-            node.operation.is_commutative
-            and not is_left_constant
-            and not is_right_constant
+        if node.operation.is_commutative and (
+            not is_left_constant or not is_right_constant
         ):
+            logger.info(
+                f"Building flat workflow for commutative operation: {node.operation}"
+            )
             return self._build_flat_workflow(node)
 
         left_workflow = self._build_recursive(node.left)
@@ -66,7 +78,7 @@ class WorkflowBuilder:
 
         # Left is constant, Right is OperationNode
         if not is_left_constant and is_right_constant:
-            return left_workflow | op_task.s(y=right_workflow, is_left_fixed=False)
+            return left_workflow | op_task.s(y=right_workflow)
 
         # Left is OperationNode, Right is constant
         if is_left_constant and not is_right_constant:
@@ -75,6 +87,9 @@ class WorkflowBuilder:
         # Both are OperationNodes
         op_chord_task = self.task_chord_map.get(node.operation)
         parallel_tasks = group(left_workflow, right_workflow)
+        logger.info(
+            f"Creating chord for operation: {node.operation} with tasks: {parallel_tasks}"
+        )
 
         return chord(parallel_tasks, op_chord_task.s())
 
@@ -87,6 +102,8 @@ class WorkflowBuilder:
         flatten_commutative_nodes = self._flatten_commutative_operands(
             node, node.operation
         )
+        logger.info(f"Flattened commutative nodes: {flatten_commutative_nodes}")
+
         child_workflows = [
             self._build_recursive(sub_node) for sub_node in flatten_commutative_nodes
         ]
@@ -125,15 +142,15 @@ class WorkflowBuilder:
             return chord(header=group(tasks), body=aggregator_task.s())
 
         # Case: Multiple tasks
-        result = chord(header=group(tasks), body=aggregator_task.s())
-
         if num_constants == 1:
-            return result | op_task.s(y=constants[0])
+            return chord(header=group(tasks), body=aggregator_task.s()) | op_task.s(
+                y=constants[0]
+            )
         if num_constants > 1:
             tasks.append(aggregator_task.s(constants))
             return chord(header=group(tasks), body=aggregator_task.s())
 
-        return identity
+        return chord(header=group(tasks), body=aggregator_task.s())
 
     def _flatten_commutative_operands(
         self, node, operation: OperationEnum

@@ -32,12 +32,13 @@ class WorkflowOrchestrator:
         }
 
         self.parser = ExpressionParser()
-        self.builder = WorkflowBuilder(self.task_map)
+        self.builder = WorkflowBuilder(self.task_map, self.task_map_chord)
 
     def calculate(self, expression: str) -> CalculateExpressionResponse:
         parsed = self.parser.parse(expression)
         workflow_async_result, workflow_str = self.builder.build(parsed)
         final_result = workflow_async_result.get(timeout=3)
+        logging.info(f"Workflow String: {workflow_str}")
         logger.info(f"Final Result: {final_result}")
 
         return CalculateExpressionResponse(result=final_result, workflow=workflow_str)

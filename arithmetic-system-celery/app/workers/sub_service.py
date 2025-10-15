@@ -15,6 +15,9 @@ def subtract_task(x: float, y: float = None, is_left_fixed: bool = False) -> flo
     minuend, subtrahend = (y, x) if is_left_fixed else (x, y)
 
     try:
+        logger.info(
+            f"Subtracting {minuend} - {subtrahend} Result: {minuend - subtrahend} Is left fixed: {is_left_fixed}"
+        )
         return minuend - subtrahend
     except Exception as exc:
         logger.error(f"Error in subtract task: {minuend} - {subtrahend}: {exc}")

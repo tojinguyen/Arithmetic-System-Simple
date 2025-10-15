@@ -13,6 +13,7 @@ def xsum_task(numbers: list[float]) -> float:
         raise TypeError("All elements in numbers must be int or float.")
 
     try:
+        logger.info(f"Calculating xsum for input: {numbers} Result: {sum(numbers)}")
         return sum(numbers)
     except Exception as e:
         logger.error(f"Error in xsum task for input {numbers}: {e}")

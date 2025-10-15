@@ -16,6 +16,7 @@ def divide_list_task(x: list[int | float]):
         raise ZeroDivisionError("Cannot divide by zero.")
 
     try:
+        logger.info(f"Dividing {x[0]} / {x[1]} Result: {x[0] / x[1]}")
         return x[0] / x[1]
     except Exception as e:
         logger.error(f"Error in division: {e}")

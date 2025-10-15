@@ -19,6 +19,7 @@ def divide_task(x: int | float, y: int | float, is_left_fixed: bool = False) -> 
         raise ZeroDivisionError(f"Cannot divide {dividend} by zero.")
 
     try:
+        logger.info(f"Dividing {dividend} / {divisor}")
         return dividend / divisor
     except Exception as e:
         logger.error(f"Error in division: {dividend} / {divisor}: {e}")

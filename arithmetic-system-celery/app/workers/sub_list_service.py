@@ -13,6 +13,7 @@ def subtract_list_task(x: list[int | float]):
         raise ValueError(f"Sub task expects 2 elements from chord, got {len(x)}")
 
     try:
+        logger.info(f"Subtracting {x[0]} - {x[1]}")
         return x[0] - x[1]
     except Exception as e:
         logger.error(f"Error in subtraction: {e}")

@@ -13,6 +13,7 @@ def xprod_task(numbers):
     if not all(isinstance(i, (int, float)) for i in numbers):
         raise TypeError("All elements in numbers must be int or float.")
     try:
+        logger.info(f"Calculating xprod for input: {numbers} Result: {prod(numbers)}")
         return prod(numbers)
     except Exception as e:
         logger.error(f"Error in xprod task for input {numbers}: {e}")

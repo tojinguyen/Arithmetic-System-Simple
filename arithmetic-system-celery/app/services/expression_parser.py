@@ -35,6 +35,40 @@ class ExpressionNode:
     left: ExpressionNode | float
     right: ExpressionNode | float
 
+    def log_tree(self, indent: int = 0, prefix: str = "") -> str:
+        result = []
+        current_indent = "  " * indent
+
+        # Current node
+        op_symbol = self._get_operation_symbol()
+        result.append(f"{current_indent}{prefix}{op_symbol}")
+
+        # Left child
+        if isinstance(self.left, ExpressionNode):
+            result.append(self.left.log_tree(indent + 1, "├── "))
+        else:
+            result.append(f"{current_indent}  ├── {self.left}")
+
+        # Right child
+        if isinstance(self.right, ExpressionNode):
+            result.append(self.right.log_tree(indent + 1, "└── "))
+        else:
+            result.append(f"{current_indent}  └── {self.right}")
+
+        return "\n".join(result)
+
+    def _get_operation_symbol(self) -> str:
+        symbols = {
+            OperationEnum.ADD: "+",
+            OperationEnum.SUB: "-",
+            OperationEnum.MUL: "*",
+            OperationEnum.DIV: "/",
+        }
+        return symbols.get(self.operation, "?")
+
+    def __str__(self) -> str:
+        return self.log_tree()
+
 
 class ExpressionParser:
     OPERATORS = {
@@ -51,6 +85,7 @@ class ExpressionParser:
         clean_expr = self._clean_expression(expression)
         tree = ast.parse(clean_expr, mode="eval")
         expr_tree = self._build_expression_tree(tree.body)
+        logger.info(f"Parsed Expression Tree:\n{expr_tree}")
 
         return expr_tree
 
