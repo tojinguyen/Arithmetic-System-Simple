@@ -5,6 +5,7 @@ from .expression_parser import ExpressionNode, OperationEnum
 import logging
 from app.workers import xsum_task, xprod_task
 from typing import Callable
+from celery.canvas import _chain
 
 logger = logging.getLogger(__name__)
 
@@ -156,23 +157,26 @@ class WorkflowBuilder:
         return sub_commutative_expression
 
     def _signature_to_string(self, sig: Signature) -> str:
+        # Chore
         if isinstance(sig, chord):
             header_tasks = [self._signature_to_string(task) for task in sig.tasks]
             body_str = self._signature_to_string(sig.body)
             return f"chord([{', '.join(header_tasks)}], {body_str})"
 
+        # Chain
+        if isinstance(sig, _chain):
+            task_strings = [self._signature_to_string(task) for task in sig.tasks]
+            return " | ".join(task_strings)
+
+        # Group
         if hasattr(sig, "tasks"):
             task_strings = [self._signature_to_string(task) for task in sig.tasks]
             return f"group([{', '.join(task_strings)}])"
 
+        # Single Task
         task_name = sig.task.split(".")[-1] if hasattr(sig, "task") else "unknown"
-
         args_str = self._format_args(sig)
         task_with_args = f"{task_name}{args_str}" if args_str else task_name
-
-        if hasattr(sig, "options") and "link" in sig.options:
-            next_sig = sig.options["link"]
-            return f"{task_with_args} | {self._signature_to_string(next_sig)}"
 
         return task_with_args
 

@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Query
+from fastapi.responses import JSONResponse
 import logging
 from ..services.orchestrator import WorkflowOrchestrator
 from ..models.models import CalculateExpressionResponse, ErrorResponse
@@ -19,14 +20,19 @@ orchestrator = WorkflowOrchestrator()
 @router.get("/calculate", response_model=CalculateExpressionResponse)
 def evaluate(
     expression: str = Query(..., description="Arithmetic expression to evaluate"),
-) -> CalculateExpressionResponse:
+) -> CalculateExpressionResponse | JSONResponse:
     try:
         logger.info(f"Received expression to evaluate: {expression}")
         result = orchestrator.calculate(expression)
         return result
+
     except ExpressionSyntaxError as e:
         logger.error(f"Syntax error in expression '{expression}': {str(e)}")
-        raise ErrorResponse(code=HTTPStatus.BAD_REQUEST, message=str(e))
+        return JSONResponse(
+            status_code=HTTPStatus.BAD_REQUEST,
+            content=ErrorResponse(code=HTTPStatus.BAD_REQUEST, message=str(e)),
+        )
+
     except (
         UnsupportedOperatorError,
         UnsupportedNodeError,
@@ -34,4 +40,26 @@ def evaluate(
         ComplexUnaryExpressionError,
     ) as e:
         logger.error(f"Unsupported operation in expression '{expression}': {str(e)}")
-        raise ErrorResponse(code=HTTPStatus.BAD_REQUEST, message=str(e))
+        return JSONResponse(
+            status_code=HTTPStatus.BAD_REQUEST,
+            content=ErrorResponse(code=HTTPStatus.BAD_REQUEST, message=str(e)),
+        )
+
+    except ZeroDivisionError as e:
+        logger.error(f"Division by zero in expression '{expression}': {str(e)}")
+        return JSONResponse(
+            status_code=HTTPStatus.BAD_REQUEST,
+            content=ErrorResponse(
+                code=HTTPStatus.BAD_REQUEST, message="Cannot divide by zero"
+            ),
+        )
+
+    except Exception as e:
+        logger.error(f"Unexpected error while evaluating '{expression}': {str(e)}")
+        return JSONResponse(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+            content=ErrorResponse(
+                code=HTTPStatus.INTERNAL_SERVER_ERROR,
+                message="An unexpected error occurred",
+            ),
+        )

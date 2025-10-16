@@ -83,7 +83,10 @@ class ExpressionParser:
 
     def parse(self, expression: str) -> ExpressionNode | float | int:
         clean_expr = self._clean_expression(expression)
-        tree = ast.parse(clean_expr, mode="eval")
+        try:
+            tree = ast.parse(clean_expr, mode="eval")
+        except SyntaxError as e:
+            raise ExpressionSyntaxError(expression, str(e)) from e
         expr_tree = self._build_expression_tree(tree.body)
         logger.info(f"Parsed Expression Tree:\n{expr_tree}")
 
