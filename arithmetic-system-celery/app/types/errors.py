@@ -13,14 +13,6 @@ class UnsupportedUnaryOperatorError(ExpressionError):
         super().__init__(f"Unsupported unary operator: {operator_type}")
 
 
-class ComplexUnaryExpressionError(ExpressionError):
-    def __init__(self, expression: str):
-        self.expression = expression
-        super().__init__(
-            f"Unary subtraction on complex expression is not supported: '{expression}'"
-        )
-
-
 class ExpressionSyntaxError(ExpressionError):
     def __init__(self, expression: str, message: str = "Invalid arithmetic expression"):
         self.expression = expression

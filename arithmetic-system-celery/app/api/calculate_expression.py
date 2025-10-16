@@ -8,7 +8,6 @@ from app.types.errors import (
     UnsupportedOperatorError,
     UnsupportedNodeError,
     UnsupportedUnaryOperatorError,
-    ComplexUnaryExpressionError,
 )
 
 router = APIRouter()
@@ -33,7 +32,6 @@ def evaluate(
         UnsupportedOperatorError,
         UnsupportedNodeError,
         UnsupportedUnaryOperatorError,
-        ComplexUnaryExpressionError,
     ) as e:
         logger.error(f"Unsupported operation in expression '{expression}': {str(e)}")
         raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail=str(e))

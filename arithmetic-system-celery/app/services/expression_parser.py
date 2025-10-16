@@ -9,7 +9,6 @@ from app.types.errors import (
     UnsupportedOperatorError,
     UnsupportedNodeError,
     UnsupportedUnaryOperatorError,
-    ComplexUnaryExpressionError,
 )
 
 logger = logging.getLogger(__name__)
@@ -115,8 +114,8 @@ class ExpressionParser:
         operand = self._build_expression_tree(node.operand)
         if isinstance(operand, (int, float)):
             return -operand
-
-        raise ComplexUnaryExpressionError(str(node))
+        else:
+            return ExpressionNode(operation=OperationEnum.SUB, left=0, right=operand)
 
     def _clean_expression(self, expression: str) -> str:
         clean = REGEX_SPACES.sub("", expression)
