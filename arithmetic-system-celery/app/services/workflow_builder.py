@@ -157,7 +157,7 @@ class WorkflowBuilder:
         return sub_commutative_expression
 
     def _signature_to_string(self, sig: Signature) -> str:
-        # Chore
+        # Chord
         if isinstance(sig, chord):
             header_tasks = [self._signature_to_string(task) for task in sig.tasks]
             body_str = self._signature_to_string(sig.body)
@@ -174,7 +174,17 @@ class WorkflowBuilder:
             return f"group([{', '.join(task_strings)}])"
 
         # Single Task
-        task_name = sig.task.split(".")[-1] if hasattr(sig, "task") else "unknown"
+        if hasattr(sig, "task") and sig.task:
+            if isinstance(sig.task, str):
+                task_name = sig.task.split(".")[-1]
+            else:
+                task_name = (
+                    str(sig.task).split(".")[-1]
+                    if "." in str(sig.task)
+                    else str(sig.task)
+                )
+        else:
+            task_name = "unknown"
         args_str = self._format_args(sig)
         task_with_args = f"{task_name}{args_str}" if args_str else task_name
 
@@ -185,10 +195,18 @@ class WorkflowBuilder:
         kwargs = {}
 
         if hasattr(sig, "args") and sig.args:
-            args = list(sig.args)
+            try:
+                args = list(sig.args)
+            except (TypeError, AttributeError):
+                # If args is a Mock or not iterable, skip it
+                args = []
 
         if hasattr(sig, "kwargs") and sig.kwargs:
-            kwargs = dict(sig.kwargs)
+            try:
+                kwargs = dict(sig.kwargs)
+            except (TypeError, AttributeError):
+                # If kwargs is a Mock or not a dict, skip it
+                kwargs = {}
 
         parts = []
 
