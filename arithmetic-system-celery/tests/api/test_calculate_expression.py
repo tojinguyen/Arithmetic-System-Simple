@@ -75,8 +75,8 @@ class TestCalculateAPI:
             f"Expected {status_code} on '{expression}', but got {response.status_code}"
         )
         data = response.json()
-        assert "message" in data
-        assert error_message_part in data["message"]
+        assert "detail" in data
+        assert error_message_part in data["detail"]
 
     def test_calculate_with_extra_whitespace(self, client: TestClient):
         """Tests that expressions with extra whitespace are handled correctly."""
