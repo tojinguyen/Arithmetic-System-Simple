@@ -30,7 +30,9 @@ def evaluate(
         logger.error(f"Syntax error in expression '{expression}': {str(e)}")
         return JSONResponse(
             status_code=HTTPStatus.BAD_REQUEST,
-            content=ErrorResponse(code=HTTPStatus.BAD_REQUEST, message=str(e)),
+            content=ErrorResponse(
+                code=HTTPStatus.BAD_REQUEST, message=str(e)
+            ).model_dump(),
         )
 
     except (
@@ -42,7 +44,9 @@ def evaluate(
         logger.error(f"Unsupported operation in expression '{expression}': {str(e)}")
         return JSONResponse(
             status_code=HTTPStatus.BAD_REQUEST,
-            content=ErrorResponse(code=HTTPStatus.BAD_REQUEST, message=str(e)),
+            content=ErrorResponse(
+                code=HTTPStatus.BAD_REQUEST, message=str(e)
+            ).model_dump(),
         )
 
     except ZeroDivisionError as e:
@@ -51,7 +55,7 @@ def evaluate(
             status_code=HTTPStatus.BAD_REQUEST,
             content=ErrorResponse(
                 code=HTTPStatus.BAD_REQUEST, message="Cannot divide by zero"
-            ),
+            ).model_dump(),
         )
 
     except Exception as e:
@@ -61,5 +65,5 @@ def evaluate(
             content=ErrorResponse(
                 code=HTTPStatus.INTERNAL_SERVER_ERROR,
                 message="An unexpected error occurred",
-            ),
+            ).model_dump(),
         )

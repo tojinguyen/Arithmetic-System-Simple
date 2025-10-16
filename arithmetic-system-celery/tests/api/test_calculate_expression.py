@@ -49,10 +49,10 @@ class TestCalculateAPI:
     @pytest.mark.parametrize(
         "expression, status_code, error_message_part",
         [
-            ("5+*3", 400, "Syntax error"),
-            ("5 + ", 400, "Syntax error"),
-            ("(5 + 3", 400, "Syntax error"),
-            ("5 + 3)", 400, "Syntax error"),
+            ("5+*3", 400, "invalid syntax"),
+            ("5 + ", 400, "invalid syntax"),
+            ("(5 + 3", 400, "was never closed"),
+            ("5 + 3)", 400, "unmatched"),
             ("10 / 0", 400, "Cannot divide by zero"),
             ("(5 - 5) / (2 - 2)", 400, "Cannot divide by zero"),
             ("5 + a", 400, "Expression contains invalid characters"),
@@ -75,8 +75,8 @@ class TestCalculateAPI:
             f"Expected {status_code} on '{expression}', but got {response.status_code}"
         )
         data = response.json()
-        assert "detail" in data
-        assert error_message_part in data["detail"]
+        assert "message" in data
+        assert error_message_part in data["message"]
 
     def test_calculate_with_extra_whitespace(self, client: TestClient):
         """Tests that expressions with extra whitespace are handled correctly."""
@@ -93,4 +93,7 @@ class TestCalculateAPI:
 
         assert response.status_code == 422
         data = response.json()
-        assert "Field required" in str(data["detail"])
+        assert "detail" in data
+        assert any(
+            "Field required" in str(error.get("msg", "")) for error in data["detail"]
+        )
