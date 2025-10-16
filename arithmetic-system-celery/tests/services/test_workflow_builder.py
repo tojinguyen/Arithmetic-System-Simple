@@ -207,7 +207,10 @@ class TestWorkflowBuilderIntegration:
         )
         result, workflow_str = workflow_builder.build(outer_node)
         assert result is not None
-        assert "chord" in workflow_str
+        assert (
+            workflow_str
+            == "chord([multiply_task(2, 6), add_task(1, 2)], divide_list_task)"
+        )
 
     def test_complex_expressions(self, workflow_builder):
         """Test complex nested expressions"""
@@ -227,8 +230,10 @@ class TestWorkflowBuilderIntegration:
         )
         result, workflow_str = workflow_builder.build(final_expr)
         assert result is not None
-        assert "chord" in workflow_str
-        assert "subtract_list_task" in workflow_str
+        assert (
+            workflow_str
+            == "chord([xsum_task([1, 2, 3]), xprod_task([4, 5, 6])], subtract_list_task)"
+        )
 
         # Mixed deeply nested: ((1 + 2 + 3) * (4 + 5 + 6))
         left_level1 = ExpressionNode(operation=OperationEnum.ADD, left=1, right=2)
@@ -246,9 +251,10 @@ class TestWorkflowBuilderIntegration:
         )
         result, workflow_str = workflow_builder.build(final_expr)
         assert result is not None
-        assert "chord" in workflow_str
-        assert "xsum_task([1, 2, 3])" in workflow_str
-        assert "xsum_task([4, 5, 6])" in workflow_str
+        assert (
+            workflow_str
+            == "chord([xsum_task([1, 2, 3]), xsum_task([4, 5, 6])], xprod_task)"
+        )
 
     def test_error_handling(self, workflow_builder):
         """Test error handling for invalid inputs"""
